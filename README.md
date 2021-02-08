@@ -9,4 +9,6 @@ This repository contains a data science project that discover the NBA Game Predi
 - src/models/models.py contains our neural networl models
 - run.py can be run from the command line to ingest data, train a model, and present relevant statistics for model performance to the shell
 
-
+### Responsibility 
+- Austin Le: Responsible for the data cleaning and data scraping basically for the coding part.
+- MengYuan Shi: Responsible for the paper researching and writing the report part.
