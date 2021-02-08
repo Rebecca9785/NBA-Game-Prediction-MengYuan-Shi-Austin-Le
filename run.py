@@ -9,23 +9,6 @@ def accuracy(output, labels):
     correct = correct.sum()
     return correct / len(labels)
 
-def train_GCN_LPA(model, op, epoch, idx_train, adj, features, labels):
-    model.train()
-    op.zero_grad()
-    output, y_hat = model(features, adj, labels)
-    print("output:", output[idx_train].size())
-    print("y_hat:", y_hat[idx_train].size())
-    print("labels:", labels[idx_train].size())
-    loss_gcn = F.cross_entropy(output[idx_train], labels[idx_train])
-    loss_lpa = F.cross_entropy(y_hat[idx_train], labels[idx_train])
-    acc_train = accuracy(output[idx_train], labels[idx_train])
-    loss_train = loss_gcn + 10 * loss_lpa
-    loss_train.backward(retain_graph=True)
-    op.step()
-    if (epoch + 1) % 50 == 0:
-        print('Epoch: {}'.format(epoch+1),
-              'loss_train: {:.4f}'.format(loss_train.item()),
-              'acc_train: {:.4f}'.format(acc_train.item()))
 
 def train_model(model, op, epoch, idx_train, adj_hat, features, labels):
     model.train()
@@ -39,18 +22,6 @@ def train_model(model, op, epoch, idx_train, adj_hat, features, labels):
         print('Epoch: {}'.format(epoch+1),
               'loss_train: {:.4f}'.format(loss_train.item()),
               'acc_train: {:.4f}'.format(acc_train.item()))
-
-def test_GCN_LPA(model, idx_test, adj_hat, features, labels):
-    model.eval()
-    output, y_hat = model(features, adj_hat, labels)
-    loss_gcn = F.cross_entropy(output[idx_test], labels[idx_test])
-    loss_lpa = F.cross_entropy(y_hat, labels)
-    acc_test = accuracy(output[idx_test], labels[idx_test])
-    loss_train = loss_gcn + 10 * loss_lpa
-
-    print("\nTest set results:",
-          "loss_test: {:.4f}".format(loss_test.item()),
-          "accuracy_test: {:.4f}".format(acc_test.item()))
     
 def test_GraphSage(model, idx_test, labels):
     test_output = model.forward(idx_test).data.numpy().argmax(axis=1)
@@ -133,18 +104,6 @@ def main():
             train_model(models[i], ops[i], epoch, idx_train, adj, features, labels)
         test_model(models[i], idx_test, adj, features, labels)
 
-    #GCN-LPA
-    if not testing_mode:
-        LPA_model = GCNLPA(features.shape[1],
-                           num_hidden,
-                           num_classes,
-                           adj)
-
-        optimizer = optim.Adam(LPA_model.parameters(), lr=learning_rate)
-
-        for epoch in range(num_epochs):
-            train_GCN_LPA(LPA_model, optimizer, epoch, idx_train, adj, features, labels)
-        test_model(LPA_model, idx_test, adj, features, labels)        
         
     #GraphSage
     feat_data = nn.Embedding(2708, 1433)
