@@ -54,20 +54,8 @@ class Graph2Net(nn.Module):
         x = F.relu(self.gc1(x, adj_hat))
         x = F.relu(self.gc2(x, adj_hat))
         return self.gc3(x, adj_hat)
-
-#implement GCN LPA
-class GCNLPA(nn.Module):
-    def __init__(self, in_features, num_hidden, num_classes, adj):
-        super(GCNLPA, self).__init__()
-        self.gc1 = GCNLPAConv(in_features, num_hidden, adj)
-        self.gc2 = GCNLPAConv(num_hidden, num_classes, adj)
-
-    def forward(self, x, adj, y):
-        x, y_hat = self.gc1(x, adj, y)
-        x = F.relu(x)
-        x, y_hat = self.gc2(x, adj, y_hat)
-        return x,y
     
+#implement GarphSAGE
 class SupervisedGraphSage(nn.Module):
     def __init__(self, num_classes, enc):
         super(SupervisedGraphSage, self).__init__()
