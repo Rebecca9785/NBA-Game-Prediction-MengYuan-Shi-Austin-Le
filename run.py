@@ -45,7 +45,6 @@ def test_model(model, idx_test, adj_hat, features, labels):
 
 def main():
     testing_mode = len(sys.argv)==2 and sys.argv[1] == "test"
-    ogb_mode = len(sys.argv)==2 and sys.argv[1] == "ogb"
     
     if(testing_mode):
         print("Testing mode...")
@@ -53,13 +52,6 @@ def main():
         #load test data
         features, labels, adj = get_data("test/testdata/test.content",
                                          "test/testdata/test.cites")
-    elif(ogb_mode):
-        print("Benchmarking on OGB...")
-        
-        #load ogb data
-        features, labels, adj = get_data('arxiv',
-                                         'arxiv',
-                                         directed = True)
     else:
         #load config data
         data_configs = json.load(open("config/data-params.json"))
