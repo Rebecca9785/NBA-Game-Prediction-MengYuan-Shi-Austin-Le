@@ -1,7 +1,3 @@
 {
-    "config": ["config/data-params.json", "config/model-params.json"],
-    "build": "run.py",
-    "library": ["src"],
-    "notebook": ["notebooks/notebook.ipynb"],
-    "targets": ["data-cleaning", "model-setup"]
+    "GitHub Repository": "https://github.com/Rebecca9785/NBA_Game_Prediction.git"
 }
