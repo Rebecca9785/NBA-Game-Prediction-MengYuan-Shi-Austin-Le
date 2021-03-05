@@ -9,30 +9,6 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 from src.layers.layers import *
 
-
-#implement graph convolutional network
-class Graph1Net(nn.Module):
-    def __init__(self, in_features, num_hidden, out_features, bias = False):
-        super(Graph1Net, self).__init__()
-        self.gc1 = GraphConvolution(in_features, num_hidden, bias)
-        self.gc2 = GraphConvolution(num_hidden, out_features, bias)
-
-    def forward(self, x, adj_hat):
-        x = F.relu(self.gc1(x, adj_hat))
-        return self.gc2(x, adj_hat)
-
-#implement graph convolutional network with a hidden layer
-class Graph2Net(nn.Module):
-    def __init__(self, in_features, num_hidden, out_features, bias = False):
-        super(Graph2Net, self).__init__()
-        self.gc1 = GraphConvolution(in_features, num_hidden, bias)
-        self.gc2 = GraphConvolution(num_hidden, num_hidden, bias)
-        self.gc3 = GraphConvolution(num_hidden, out_features, bias)
-
-    def forward(self, x, adj_hat):
-        x = F.relu(self.gc1(x, adj_hat))
-        x = F.relu(self.gc2(x, adj_hat))
-        return self.gc3(x, adj_hat)
     
 #implement GarphSAGE
 class SupervisedGraphSage(nn.Module):
