@@ -1,140 +1,94 @@
-from src.models.models import *
+from src.models.graphsage import *
 from src.data.data import *
-import sys
+from src.utils.utils import *
+
+import warnings
+import requests
 import json
-
-def accuracy(output, labels):
-    preds = output.max(1)[1].type_as(labels)
-    correct = preds.eq(labels).double()
-    correct = correct.sum()
-    return correct / len(labels)
-
-
-def train_model(model, op, epoch, idx_train, adj_hat, features, labels):
-    model.train()
-    op.zero_grad()
-    output = model(features, adj_hat)
-    loss_train = F.cross_entropy(output[idx_train], labels[idx_train])
-    acc_train = accuracy(output[idx_train], labels[idx_train])
-    loss_train.backward()
-    op.step()
-    if (epoch + 1) % 50 == 0:
-        print('Epoch: {}'.format(epoch+1),
-              'loss_train: {:.4f}'.format(loss_train.item()),
-              'acc_train: {:.4f}'.format(acc_train.item()))
-    
-def test_GraphSage(model, idx_test, labels):
-    test_output = model.forward(idx_test).data.numpy().argmax(axis=1)
-    loss_test = F.cross_entropy(Variable(torch.from_numpy(test_output)).view(y.size()[0], 1).float(), 
-                                labels[idx_test].view(y.size()[0], 1).float())
-    acc_test = accuracy(test_output, labels[idx_test])
-    
-    print("\nTest set results:",
-          "loss_test: {:.4f}".format(loss_test.item()),
-          "accuracy_test: {:.4f}".format(acc_test.item()))
-
-def test_model(model, idx_test, adj_hat, features, labels):
-    model.eval()
-    output = model(features, adj_hat)
-    loss_test = F.cross_entropy(output[idx_test], labels[idx_test])
-    acc_test = accuracy(output[idx_test], labels[idx_test])
-    print("\nTest set results:",
-          "loss_test: {:.4f}".format(loss_test.item()),
-          "accuracy_test: {:.4f}".format(acc_test.item()))
+from bs4 import BeautifulSoup
+import pandas as pd
+from collections import defaultdict
+import csv
+from itertools import permutations
+import matplotlib.pyplot as plt
+import networkx as nx
+import warnings
+import numpy as np
+import io
+warnings.filterwarnings('ignore')
 
 
 def main():
-    testing_mode = len(sys.argv)==2 and sys.argv[1] == "test"
-    
-    if(testing_mode):
-        print("Testing mode...")
+    players_data = pd.read_csv('data/NBA_players.csv')
+    teams_data = pd.read_csv('data/NBA_teams.csv')
+    clean_players(players_data)
+    players_data['Combined'] = players_data['name'] + '_' +  players_data['team'] +  '_' + players_data['year'].astype(str)
+    teams_data['Combined'] = teams_data['Abbrev'] + '_' +  teams_data['Year'].astype(str)
+
+   
+    id_df = pd.read_csv('data/playerlist.csv')
+    id_df = id_df[['DISPLAY_FIRST_LAST', 'PERSON_ID']]
+    player_map = pd.Series(id_df.DISPLAY_FIRST_LAST.values,index=id_df.PERSON_ID).to_dict()
+
+    teams = {'CLE':'Cavaliers', 'TOR':'Raptors', 'MIA':'Heat', 'ATL':'Hawks', 'BOS': 'Celtics', 'CHO':'Hornets',
+        'IND':'Pacers', 'DET': 'Pistons', 'CHI':'Bulls', 'WAS':'Wizards','ORL':'Magic', 'NYK':'Knicks',
+        'BRK':'Nets', 'GSW':'Warriors', 'SAS':'Spurs', 'OKC':'Thunder', 'LAC':'Clippers', 'POR':'Blazers',
+        'DAL':'Mavericks', 'MEM':'Grizzlies', 'HOU':'Rockets', 'UTA':'Jazz', 'SAC':'Kings', 'DEN':'Nuggets', 
+        'NOP':'Pelicans', 'MIN':'Timberwolves', 'PHO':'Suns', 'LAL':'Lakers', 'MIL':'Bucks', 'PHI':'76ers'}
+
+    mascots = {value:key for key, value in teams.items()}
+
+    edges = []
+    for x in range(2016, 2020):
+        year = x
+        previous_year = x-1
         
-        #load test data
-        features, labels, adj = get_data("test/testdata/test.content",
-                                         "test/testdata/test.cites")
-    else:
-        #load config data
-        data_configs = json.load(open("config/data-params.json"))
-        print(data_configs)
-
-        #load cora data
-        features, labels, adj = get_data(data_configs["feature_address"],
-                                         data_configs["edges_address"],
-                                         data_configs["encoding"],
-                                         data_configs["directed"])
-
-    model_configs = json.load(open("config/model-params.json"))
-    print(model_configs)
-
-    #train and test all the models and report losses and accuracy
-    num_epochs = model_configs["num_epochs"]
-    learning_rate = model_configs["learning_rate"]
-    num_hidden = model_configs["num_hidden"]
-    Q = int(model_configs["Q"])
-    K = int(model_configs["K"])
-
-    #initialize models
-    in_features = list(features.size())[0]
-    in_features_1 = list(features.size())[1]
-    num_classes = len(set(labels))
-    models = [Fully1Net(in_features, num_classes),
-              Fully2Net(in_features, num_hidden, num_classes),
-              Graph1Net(in_features_1, num_hidden, num_classes),
-              Graph2Net(in_features_1, num_hidden, num_classes)]
-
-    #split for train and test sets
-    idx_train = torch.LongTensor(range(int(in_features_1 * 0.69)))
-    idx_test = torch.LongTensor(range(int(in_features_1 * 0.69), in_features_1))
-
-    #initialize optimizers
-    ops = [optim.Adam(model.parameters(), lr=learning_rate) for model in models]
-
-    model_names = ["Fully1Net", "Fully2Net", "Graph1Net", "Graph2Net"]
-    for i in range(len(models)):
-        print("\nRunning {} Model...".format(model_names[i]))
-        for epoch in range(num_epochs):
-            train_model(models[i], ops[i], epoch, idx_train, adj, features, labels)
-        test_model(models[i], idx_test, adj, features, labels)
-
+        URL = 'https://eightthirtyfour.com/nba/pbp/events_{}-{}_pbp.csv'
+        URL = URL.format(str(previous_year), str(year))
+        print("Currently reading: " + URL)
+        r = requests.get(URL, verify=False).content
         
-    #GraphSage
-    feat_data = nn.Embedding(2708, 1433)
-    feat_data.weight = nn.Parameter(torch.FloatTensor(features), requires_grad=False)
+        df = pd.read_csv(io.StringIO(r.decode('utf-8')))
+        players = players_data.loc[players_data.year == year]
+        clean_players(players)
+        map_id(df, player_map)
+        for i in teams.values():
+            team_edge = create_network(i, df, players,teams, mascots,year)
+            edges.append(team_edge)
 
-    agg1 = MeanAggregator(feat_data, cuda=True)
-    enc1 = Encoder(feat_data, in_features_1, 128, adj, agg1, gcn=True, cuda=False)
-    
-    pooling = lambda nodes : enc1(nodes).t()
-    
-    agg2 = MeanAggregator(pooling, cuda=False)
-    enc2 = Encoder(pooling, enc1.embed_dim, 128, adj, agg2,
-            base_model=enc1, gcn=True, cuda=False)
-    enc1.num_samples = Q
-    enc2.num_samples = Q
+    print("Creating Player Edges")
+    G = nx.Graph()
+    for team in range(len(edges)):
+        for player_edge in range(len(edges[team])):
+            G.add_edge(edges[team][player_edge][0], edges[team][player_edge][1], weight=edges[team][player_edge][2])
+    edge,weights = zip(*nx.get_edge_attributes(G,'weight').items())
 
-    #Mean GraphSage
-    graphsage = SupervisedGraphSage(K, enc1)
-    
-    optimizer = torch.optim.SGD(filter(lambda p : p.requires_grad, graphsage.parameters()), lr=0.7)
-    for epoch in range(num_epochs):
-        loss = graphsage.loss(idx_train, 
-                Variable(torch.LongTensor(labels[idx_train])))
-        loss.backward()
-        optimizer.step()
-        print (epoch, loss.item())
-    test_GraphSage(graphsage, idx_test, labels)
-    
-    #Pooling GraphSage
-    graphsage = SupervisedGraphSage(K, enc2)
-    
-    optimizer = torch.optim.SGD(filter(lambda p : p.requires_grad, graphsage.parameters()), lr=0.7)
-    for epoch in range(num_epochs):
-        loss = graphsage.loss(idx_train, 
-                Variable(torch.LongTensor(labels[idx_train])))
-        loss.backward()
-        optimizer.step()
-        print (epoch, loss.item())
-    test_GraphSage(graphsage, idx_test, labels)
+    print("Embedding Player Statistics")
+    embedd_stats(G,players_data)
+
+    matrix = nx.adjacency_matrix(G).A
+    nodes = list(G.nodes())
+    # labels = [teams_data.loc[teams_data.Combined == x[-8:]].Standing.item() for x in nodes]
+    labels = [teams_data.loc[teams_data.Combined == x[-8:]].Playoff.item() for x in nodes]
+    rows = len(matrix)
+    columns = len(matrix[0])
+    num_classes = 2
+    A = build_adj(nodes,list(edge))
+    train_idx, val_idx, test_idx = limit_data(labels)
+
+    train_mask = np.zeros((rows,),dtype=bool)
+    train_mask[train_idx] = True
+
+    val_mask = np.zeros((rows,),dtype=bool)
+    val_mask[val_idx] = True
+
+    test_mask = np.zeros((rows,),dtype=bool)
+    test_mask[test_idx] = True
+
+    labels_encoded, classes = encode_label(labels)
+
+    GraphSage(A, columns, rows, matrix, train_mask, val_mask, labels_encoded, num_classes, 'mean', 10, 0.5, 5e-4, 0.001,50, 50)
+
     
 if __name__ == '__main__':
     main()
