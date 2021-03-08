@@ -87,7 +87,7 @@ def main():
 
     labels_encoded, classes = encode_label(labels)
 
-    GraphSage(A, columns, rows, matrix, train_mask, val_mask, labels_encoded, num_classes, 'mean', 10, 0.5, 5e-4, 0.001,50, 50)
+    GraphSage(A, columns, rows, matrix, train_mask, val_mask, labels_encoded, num_classes, 'mean', 10, 0.5, 5e-4, 0.001,200, 200)
 
     
 if __name__ == '__main__':
