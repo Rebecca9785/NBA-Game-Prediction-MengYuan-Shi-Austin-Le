@@ -10,5 +10,5 @@ This repository contains a data science project that discover the NBA Game Predi
 - run.py can be run from the command line to ingest data, train a model, and present relevant statistics for model performance to the shell
 
 ### Responsibility 
-- Austin Le: Responsible for the data cleaning and data scraping basically for the coding part.
-- MengYuan Shi: Responsible for the paper researching and writing the report part.
+- Austin Le: Responsible for the data cleaning and data scraping and the coding part as well as the report.
+- MengYuan Shi: Responsible for the paper researching and writing the report part as well as the visualization.
