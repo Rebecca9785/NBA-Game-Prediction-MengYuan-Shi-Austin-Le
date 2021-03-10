@@ -5,7 +5,7 @@ This repository contains a data science project that discover the NBA Game Predi
 
 
 ### Warning
-Our group has altered and used the graphsage implementation that can be received from https://github.com/williamleif/GraphSAGE . We made minor changes within the model and inputs to align with the goals of our project, but we would like to cite them as a source for the main graphsage implementation
+Our group has altered and used the graphsage implementation that can be received from https://github.com/williamleif/GraphSAGE . We made minor changes within the model and inputs to align with the goals of our project, but we would like to cite them as a source for the main graphsage implementation.
 
 
 ### Running the project
