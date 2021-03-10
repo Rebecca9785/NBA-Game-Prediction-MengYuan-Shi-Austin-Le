@@ -15,6 +15,9 @@ Our group has altered and used the graphsage implementation that can be received
   - Appends all player edges from all season onto a single graph 
   - Embedd player categorical statistics onto each node 
   - runs graphSage model to learn over features
+
+### Outputs
+  - The outputs printed will be the corresponding accuracies obtained after the training
   - ~5min runtime
 
 ### Responsibility 
